@@ -2,11 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Hidden Iframe Trigger</title>
+    <title>GUUYJB</title>
 </head>
 <body>
 
     <button onclick="loadAngry()">Start Process</button>
+    <button onclick="fetchTwin()">Fetch Me Twin</button>
 
     <!-- Hidden container holding the iframe -->
     <div id="iframe-container" style="display: none;"></div>
@@ -24,6 +25,13 @@
                 iframe.style.border = 'none';
                 container.appendChild(iframe);
             }
+        }
+
+        function fetchTwin() {
+            // Dynamically loads and executes okfetchguy.js
+            const script = document.createElement('script');
+            script.src = 'okfetchguy.js';
+            document.body.appendChild(script);
         }
     </script>
 
