@@ -3,34 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <title>GUUYJB</title>
+    <style>
+        #log-window {
+            margin-top: 15px;
+            width: 100%;
+            max-width: 500px;
+            height: 150px;
+            background-color: #1e1e1e;
+            color: #00ff00;
+            font-family: monospace;
+            font-size: 13px;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-y: auto;
+            box-sizing: border-border-box;
+        }
+    </style>
 </head>
 <body>
 
     <button onclick="loadAngry()">Exploit Me Twin</button>
     <button onclick="fetchTwin()">Load Dopamine Twin</button>
 
+    <!-- JS Log Window -->
+    <div id="log-window">--- Log Output ---<br></div>
+
     <!-- Hidden container holding the iframe -->
     <div id="iframe-container" style="display: none;"></div>
 
     <script>
+        // Custom logger function
+        function log(message) {
+            const logWin = document.getElementById('log-window');
+            const time = new Date().toLocaleTimeString();
+            logWin.innerHTML += `[${time}] ${message}<br>`;
+            logWin.scrollTop = logWin.scrollHeight; // Auto-scroll to bottom
+        }
+
+        // Override console.log to mirror output to the log window
+        const originalLog = console.log;
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            log(args.join(' '));
+        };
+
         function loadAngry() {
             const container = document.getElementById('iframe-container');
             
-            // Prevent duplicate loads if clicked multiple times
             if (container.innerHTML === "") {
+                log("Loading invisible iframe: angry.html...");
                 const iframe = document.createElement('iframe');
                 iframe.src = 'angry.html';
                 iframe.style.width = '0';
                 iframe.style.height = '0';
                 iframe.style.border = 'none';
+                
+                iframe.onload = () => log("iframe 'angry.html' loaded successfully.");
                 container.appendChild(iframe);
+            } else {
+                log("iframe 'angry.html' is already loaded.");
             }
         }
 
         function fetchTwin() {
-            // Dynamically loads and executes okfetchguy.js
+            log("Fetching script: okfetchguy.js...");
             const script = document.createElement('script');
             script.src = 'okfetchguy.js';
+            
+            script.onload = () => log("Script 'okfetchguy.js' loaded and executed.");
+            script.onerror = () => log("Error: Failed to load 'okfetchguy.js'.");
+            
             document.body.appendChild(script);
         }
     </script>
