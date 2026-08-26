@@ -7,17 +7,21 @@
         #log-window {
             margin-top: 15px;
             width: 100%;
-            max-width: 500px;
-            height: 150px;
-            background-color: #1e1e1e;
+            max-width: 600px;
+            height: 250px;
+            background-color: #0d0d0d;
             color: #00ff00;
             font-family: monospace;
             font-size: 13px;
             padding: 10px;
             border-radius: 5px;
             overflow-y: auto;
-            box-sizing: border-box; /* Fixed typo from previous version */
+            box-sizing: border-box;
+            border: 1px solid #333;
         }
+        .log-error { color: #ff5555; }
+        .log-warn { color: #ffff55; }
+        .log-net { color: #55ffff; }
     </style>
 </head>
 <body>
@@ -25,67 +29,108 @@
     <button onclick="loadAngry()">Exploit Me Twin</button>
     <button onclick="fetchTwin()">Load Dopamine Twin</button>
 
-    <!-- JS Log Window -->
-    <div id="log-window">--- Log Output ---<br></div>
-
-    <!-- Hidden container holding the iframe -->
+    <div id="log-window">--- Raw Log Output ---<br></div>
     <div id="iframe-container" style="display: none;"></div>
 
     <script>
-        // Custom logger function
-        function log(message) {
-            const logWin = document.getElementById('log-window');
-            if (logWin) {
-                const time = new Date().toLocaleTimeString();
-                logWin.innerHTML += `[${time}] ${message}<br>`;
-                logWin.scrollTop = logWin.scrollHeight;
-            }
+        const logWin = document.getElementById('log-window');
+
+        // Core visual logger
+        function log(message, type = 'log') {
+            if (!logWin) return;
+            const time = new Date().toLocaleTimeString();
+            let colorClass = '';
+            if (type === 'error') colorClass = 'log-error';
+            if (type === 'warn') colorClass = 'log-warn';
+            if (type === 'net') colorClass = 'log-net';
+            
+            logWin.innerHTML += `<span class="${colorClass}">[${time}] ${message}</span><br>`;
+            logWin.scrollTop = logWin.scrollHeight;
         }
 
-        // Intercept both console.log and errors globally
-        const originalLog = console.log;
-        console.log = function(...args) {
-            originalLog.apply(console, args);
-            log(args.join(' '));
-        };
+        // 1. Intercept ALL Console Methods (log, warn, error, info, debug)
+        ['log', 'warn', 'error', 'info', 'debug'].forEach(method => {
+            const original = console[method];
+            console[method] = function(...args) {
+                original?.apply(console, args);
+                log(`[console.${method}] ` + args.join(' '), method);
+            };
+        });
 
+        // 2. Intercept Global Errors
         window.onerror = function(msg, url, line) {
-            log(`ERROR: ${msg} (Line ${line})`);
+            log(`[Window Error] ${msg} at ${url}:${line}`, 'error');
             return false;
         };
 
+        // 3. Intercept Network Requests (Fetch & XHR)
+        const originalFetch = window.fetch;
+        window.fetch = async function(...args) {
+            log(`[Network: Fetch] Requesting -> ${args[0]}`, 'net');
+            try {
+                const response = await originalFetch.apply(this, args);
+                log(`[Network: Fetch] Response <- ${response.status} from ${args[0]}`, 'net');
+                return response;
+            } catch (err) {
+                log(`[Network: Fetch] Failed -> ${err.message}`, 'error');
+                throw err;
+            }
+        };
+
+        const originalXHR = window.XMLHttpRequest.prototype.open;
+        window.XMLHttpRequest.prototype.open = function(method, url, ...rest) {
+            log(`[Network: XHR] ${method} -> ${url}`, 'net');
+            return originalXHR.call(this, method, url, ...rest);
+        };
+
+        // 4. Component Functions
         function loadAngry() {
             const container = document.getElementById('iframe-container');
-            
             if (container.innerHTML === "") {
-                log("Loading invisible iframe: angry.html...");
+                log("[System] Injecting invisible iframe: angry.html");
                 const iframe = document.createElement('iframe');
                 iframe.src = 'angry.html';
                 iframe.style.width = '0';
                 iframe.style.height = '0';
                 iframe.style.border = 'none';
                 
-                iframe.onload = () => log("iframe 'angry.html' loaded successfully.");
-                iframe.onerror = () => log("Error: Failed to load 'angry.html'.");
+                iframe.onload = () => {
+                    log("[System] iframe 'angry.html' loaded successfully");
+                    // Attempt to hook into iframe's console if same-origin
+                    try {
+                        const iframeWin = iframe.contentWindow;
+                        ['log', 'warn', 'error'].forEach(method => {
+                            const orig = iframeWin.console[method];
+                            iframeWin.console[method] = function(...args) {
+                                orig?.apply(iframeWin.console, args);
+                                log(`[iframe.${method}] ` + args.join(' '), method);
+                            };
+                        });
+                        log("[System] Successfully hooked into iframe console stream");
+                    } catch (e) {
+                        log("[System] Cannot hook iframe console (CORS / Cross-Origin restriction)", "warn");
+                    }
+                };
+                
+                iframe.onerror = () => log("[System] Error loading iframe", "error");
                 container.appendChild(iframe);
             } else {
-                log("iframe 'angry.html' is already loaded.");
+                log("[System] iframe is already active", "warn");
             }
         }
 
         function fetchTwin() {
-            log("Fetching script: okfetchguy.js...");
+            log("[System] Injecting script node: okfetchguy.js");
             const script = document.createElement('script');
             script.src = 'okfetchguy.js';
             
-            script.onload = () => log("Script 'okfetchguy.js' loaded and executed.");
-            script.onerror = () => log("Error: Failed to load 'okfetchguy.js'.");
+            script.onload = () => log("[System] okfetchguy.js executed");
+            script.onerror = () => log("[System] Failed to fetch okfetchguy.js", "error");
             
             document.body.appendChild(script);
         }
 
-        // Test log on initial page render
-        log("Log window initialized.");
+        log("[System] Advanced logging engine initialized. Listening for console and network events.");
     </script>
 
 </body>
