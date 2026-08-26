@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>GUUYJB</title>
+    <title>GUUYJB (Experimental)</title>
     <style>
         #log-window {
             margin-top: 15px;
@@ -16,7 +16,7 @@
             padding: 10px;
             border-radius: 5px;
             overflow-y: auto;
-            box-sizing: border-border-box;
+            box-sizing: border-box; /* Fixed typo from previous version */
         }
     </style>
 </head>
@@ -35,16 +35,23 @@
         // Custom logger function
         function log(message) {
             const logWin = document.getElementById('log-window');
-            const time = new Date().toLocaleTimeString();
-            logWin.innerHTML += `[${time}] ${message}<br>`;
-            logWin.scrollTop = logWin.scrollHeight; // Auto-scroll to bottom
+            if (logWin) {
+                const time = new Date().toLocaleTimeString();
+                logWin.innerHTML += `[${time}] ${message}<br>`;
+                logWin.scrollTop = logWin.scrollHeight;
+            }
         }
 
-        // Override console.log to mirror output to the log window
+        // Intercept both console.log and errors globally
         const originalLog = console.log;
         console.log = function(...args) {
             originalLog.apply(console, args);
             log(args.join(' '));
+        };
+
+        window.onerror = function(msg, url, line) {
+            log(`ERROR: ${msg} (Line ${line})`);
+            return false;
         };
 
         function loadAngry() {
@@ -59,6 +66,7 @@
                 iframe.style.border = 'none';
                 
                 iframe.onload = () => log("iframe 'angry.html' loaded successfully.");
+                iframe.onerror = () => log("Error: Failed to load 'angry.html'.");
                 container.appendChild(iframe);
             } else {
                 log("iframe 'angry.html' is already loaded.");
@@ -75,6 +83,9 @@
             
             document.body.appendChild(script);
         }
+
+        // Test log on initial page render
+        log("Log window initialized.");
     </script>
 
 </body>
